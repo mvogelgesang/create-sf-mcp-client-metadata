@@ -4,9 +4,9 @@
     <namedCredential>NAMESPACE__MCP_NAME</namedCredential>
     <namedCredentialReference>MCP_NAME</namedCredentialReference>
     <registrationProviderType>ModelContextProtocol</registrationProviderType>
-    <schema>{&quot;serverDescriptor&quot;:{&quot;protocolVersion&quot;:&quot;2025-06-18&quot;,&quot;serverInfo&quot;:{&quot;name&quot;:&quot;news-mock-server&quot;,&quot;version&quot;:&quot;1.0.0&quot;}},&quot;tools&quot;:[{&quot;name&quot;:&quot;getNews&quot;,&quot;title&quot;:null,&quot;description&quot;:&quot;Get the latest news articles&quot;,&quot;inputSchema&quot;:{&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;numberOfNews&quot;:{&quot;type&quot;:&quot;number&quot;}},&quot;additionalProperties&quot;:false},&quot;annotations&quot;:null}],&quot;resources&quot;:[]}</schema>
+    <schema>SCHEMA_JSON</schema>
     <schemaType>ModelContextProtocol</schemaType>
-    <serviceBinding>{&quot;protocolVersion&quot;:&quot;2025-06-18&quot;,&quot;serverInfo&quot;:{&quot;name&quot;:&quot;news-mock-server&quot;,&quot;version&quot;:&quot;1.0.0&quot;},&quot;instructions&quot;:null}</serviceBinding>
+    <serviceBinding>SERVICE_BINDING_JSON</serviceBinding>
     <status>Incomplete</status>
     <systemVersion>8</systemVersion>
 </ExternalServiceRegistration>

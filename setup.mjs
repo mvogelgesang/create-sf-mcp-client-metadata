@@ -20,28 +20,29 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const FORCE_APP_DIR = join(__dirname, 'force-app', 'main', 'default');
 const TEMPLATE_NAME = 'template';
+const MCP_PROTOCOL_VERSION = '2025-06-18';
 
 const VARIABLES = [
   {
     key: 'MCP_NAME',
     prompt: 'MCP server name',
-    description: 'A unique identifier for your MCP server (e.g., weather_api, slack_mcp).\nThis will be used for file names and labels in Salesforce.',
-    validate: (val) => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(val),
-    error: 'Must start with a letter and contain only letters, numbers, and underscores.',
+    description: 'A unique identifier for your MCP server (e.g., weatherApi, SlackMcp).\nOnly letters are allowed; no numbers or underscores.\nThis will be used for file names and labels in Salesforce.',
+    validate: (val) => /^[a-zA-Z]+$/.test(val),
+    error: 'Only letters (uppercase and/or lowercase) are allowed. No numbers or underscores.',
   },
   {
     key: 'MCP_SERVER_URL',
     prompt: 'MCP server URL',
     description: 'The full URL of your MCP server endpoint.\nExample: https://mcp.example.com/api',
     validate: (val) => /^https?:\/\/.+/.test(val),
-    error: 'Must be a valid URL starting with http:// or https://',
+    error: 'Must be a valid URL starting with https://',
   },
   {
     key: 'AUTH_PROVIDER_URL',
     prompt: 'OAuth token endpoint URL',
     description: 'The OAuth 2.0 token endpoint for authentication.\nExample: https://auth.example.com/oauth/token',
     validate: (val) => /^https?:\/\/.+/.test(val),
-    error: 'Must be a valid URL starting with http:// or https://',
+    error: 'Must be a valid URL starting with https://',
   },
   {
     key: 'NAMESPACE',
@@ -165,6 +166,154 @@ const getExistingInstances = () => {
 };
 
 // =============================================================================
+// XML escape and minimal schema/serviceBinding stubs
+// =============================================================================
+
+/** Escape a string for safe use inside XML element content. */
+const escapeXml = (str) => {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+};
+
+/** Minimal schema stub when fetch is skipped or fails. */
+const getMinimalSchema = (mcpName) => ({
+  serverDescriptor: {
+    protocolVersion: MCP_PROTOCOL_VERSION,
+    serverInfo: { name: mcpName, version: '1.0.0' },
+  },
+  tools: [],
+  resources: [],
+});
+
+/** Minimal serviceBinding stub when fetch is skipped or fails. */
+const getMinimalServiceBinding = (mcpName) => ({
+  protocolVersion: MCP_PROTOCOL_VERSION,
+  serverInfo: { name: mcpName, version: '1.0.0' },
+  instructions: null,
+});
+
+// =============================================================================
+// OAuth and MCP client
+// =============================================================================
+
+/** Get OAuth 2.0 access token via client_credentials grant. Returns token string or null. */
+const getOAuthToken = async (authProviderUrl, clientId, clientSecret) => {
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+  const res = await fetch(authProviderUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OAuth token request failed (${res.status}): ${text}`);
+  }
+  const data = await res.json();
+  return data.access_token ?? null;
+};
+
+/** Send one JSON-RPC request to the MCP server. Returns result; throws on error. */
+const mcpJsonRpc = async (url, method, params = {}, token = null) => {
+  const id = Math.floor(Math.random() * 1e9);
+  const body = JSON.stringify({ jsonrpc: '2.0', id, method, params });
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(url, { method: 'POST', headers, body });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`MCP request failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  if (data.error) {
+    throw new Error(data.error.message || JSON.stringify(data.error));
+  }
+  return data.result;
+};
+
+/** Normalize a tool from tools/list to schema shape (name, title, description, inputSchema, annotations). */
+const normalizeTool = (t) => ({
+  name: t.name ?? '',
+  title: t.title ?? null,
+  description: t.description ?? null,
+  inputSchema: t.inputSchema ?? { type: 'object', properties: {} },
+  annotations: t.annotations ?? null,
+});
+
+/** Fetch schema and serviceBinding from MCP server. Returns { schema, serviceBinding } or null on failure. */
+const fetchSchemaFromMcp = async (mcpServerUrl, authProviderUrl, clientId, clientSecret) => {
+  let token = null;
+  if (clientId && clientSecret) {
+    try {
+      token = await getOAuthToken(authProviderUrl, clientId, clientSecret);
+      log.success('OAuth token obtained.');
+    } catch (err) {
+      log.warning(`OAuth failed: ${err.message}`);
+      return null;
+    }
+  }
+
+  try {
+    const initParams = {
+      protocolVersion: MCP_PROTOCOL_VERSION,
+      capabilities: {},
+      clientInfo: { name: 'mcp-metadata-setup', version: '1.0.0' },
+    };
+    const initResult = await mcpJsonRpc(mcpServerUrl, 'initialize', initParams, token);
+    const protocolVersion = initResult.protocolVersion ?? MCP_PROTOCOL_VERSION;
+    const serverInfo = initResult.serverInfo ?? { name: 'mcp-server', version: '1.0.0' };
+    const instructions = initResult.instructions ?? null;
+
+    const serverDescriptor = { protocolVersion, serverInfo };
+    const serviceBinding = { protocolVersion, serverInfo, instructions };
+
+    let tools = [];
+    let cursor = undefined;
+    do {
+      const params = cursor ? { cursor } : {};
+      const listResult = await mcpJsonRpc(mcpServerUrl, 'tools/list', params, token);
+      const list = listResult?.tools ?? [];
+      tools = tools.concat(list.map(normalizeTool));
+      cursor = listResult?.nextCursor ?? null;
+    } while (cursor);
+
+    let resources = [];
+    try {
+      let resCursor = undefined;
+      do {
+        const params = resCursor ? { cursor: resCursor } : {};
+        const listResult = await mcpJsonRpc(mcpServerUrl, 'resources/list', params, token);
+        const list = listResult?.resources ?? [];
+        resources = resources.concat(list);
+        resCursor = listResult?.nextCursor ?? null;
+      } while (resCursor);
+    } catch {
+      resources = [];
+    }
+
+    const schema = { serverDescriptor, tools, resources };
+    return { schema, serviceBinding };
+  } catch (err) {
+    log.warning(`MCP fetch failed: ${err.message}`);
+    if (String(err.message).includes('401') && !token) {
+      log.info('If your MCP server requires OAuth, provide Client ID and Client Secret and try again.');
+    }
+    return null;
+  }
+};
+
+// =============================================================================
 // Main
 // =============================================================================
 
@@ -194,7 +343,44 @@ const main = async () => {
   for (const variable of VARIABLES) {
     values[variable.key] = await promptWithValidation(variable);
   }
-  
+
+  // Optional: fetch schema and serviceBinding from MCP server
+  log.header('Step 1b: Schema from MCP (optional)');
+  console.log('The External Service Registration needs a schema (tools list) and service binding.\n');
+  const fetchSchema = (await prompt(`${c.green}▸${c.reset} Fetch schema from MCP server now? (y/n): `)).trim().toLowerCase() === 'y';
+
+  let schemaObj;
+  let serviceBindingObj;
+  let schemaSource = 'minimal stub';
+
+  if (fetchSchema) {
+    const clientId = (await prompt(`${c.green}▸${c.reset} Client ID (optional, if MCP requires OAuth): `)).trim();
+    const clientSecret = (await prompt(`${c.green}▸${c.reset} Client Secret (optional): `)).trim();
+    log.info('Calling MCP server...');
+    const result = await fetchSchemaFromMcp(
+      values.MCP_SERVER_URL,
+      values.AUTH_PROVIDER_URL,
+      clientId || null,
+      clientSecret || null,
+    );
+    if (result) {
+      schemaObj = result.schema;
+      serviceBindingObj = result.serviceBinding;
+      schemaSource = `fetched (${schemaObj.tools?.length ?? 0} tools, ${schemaObj.resources?.length ?? 0} resources)`;
+      log.success('Schema and service binding fetched from MCP server.');
+    } else {
+      log.warning('Using minimal schema stub. You can deploy and refresh tools in Agentforce later.');
+      schemaObj = getMinimalSchema(values.MCP_NAME);
+      serviceBindingObj = getMinimalServiceBinding(values.MCP_NAME);
+    }
+  } else {
+    schemaObj = getMinimalSchema(values.MCP_NAME);
+    serviceBindingObj = getMinimalServiceBinding(values.MCP_NAME);
+  }
+
+  const schemaJsonEscaped = escapeXml(JSON.stringify(schemaObj));
+  const serviceBindingJsonEscaped = escapeXml(JSON.stringify(serviceBindingObj));
+
   // Build replacements map
   const namespacePrefix = values.NAMESPACE ? `${values.NAMESPACE}__` : '';
   const replacements = {
@@ -202,16 +388,19 @@ const main = async () => {
     'MCP_SERVER_URL': values.MCP_SERVER_URL,
     'AUTH_PROVIDER_URL': values.AUTH_PROVIDER_URL,
     'NAMESPACE__': namespacePrefix,
+    'SCHEMA_JSON': schemaJsonEscaped,
+    'SERVICE_BINDING_JSON': serviceBindingJsonEscaped,
   };
-  
+
   // Show summary
   log.header('Step 2: Review Configuration');
-  
+
   console.log('Please review your configuration:\n');
   console.log(`  ${c.bold}MCP_NAME:${c.reset}          ${values.MCP_NAME}`);
   console.log(`  ${c.bold}MCP_SERVER_URL:${c.reset}    ${values.MCP_SERVER_URL}`);
   console.log(`  ${c.bold}AUTH_PROVIDER_URL:${c.reset} ${values.AUTH_PROVIDER_URL}`);
   console.log(`  ${c.bold}NAMESPACE:${c.reset}         ${values.NAMESPACE || '(none)'}`);
+  console.log(`  ${c.bold}Schema:${c.reset}           ${schemaSource}`);
   
   console.log(`\n${c.bold}Files to be updated:${c.reset}`);
   for (const file of FILES) {
