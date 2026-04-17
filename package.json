@@ -1,0 +1,27 @@
+{
+  "name": "@mvogelgesang/create-sf-mcp-client-metadata",
+  "version": "1.0.0",
+  "description": "Scaffold Salesforce MCP metadata (Named Credentials, External Service Registration) into an SFDX project.",
+  "type": "module",
+  "bin": {
+    "create-sf-mcp-client-metadata": "./setup.mjs"
+  },
+  "files": [
+    "setup.mjs",
+    "force-app"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "salesforce",
+    "mcp",
+    "sfdx",
+    "create",
+    "model-context-protocol"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

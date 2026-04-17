@@ -8,8 +8,8 @@
  */
 
 import { createInterface } from 'readline';
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -18,7 +18,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Configuration
 // =============================================================================
 
-const FORCE_APP_DIR = join(__dirname, 'force-app', 'main', 'default');
+/** Templates always ship next to this script (package root when published). */
+const TEMPLATE_ROOT = join(__dirname, 'force-app', 'main', 'default');
 const TEMPLATE_NAME = 'template';
 const MCP_PROTOCOL_VERSION = '2025-06-18';
 
@@ -76,6 +77,44 @@ const FILES = [
     newName: (name) => `${name}_Perm_Set.permissionset-meta.xml`,
   },
 ];
+
+/** True when this script lives under node_modules (npm / npx install). */
+const isInstalledFromNpm = () => __dirname.replace(/\\/g, '/').includes('/node_modules/');
+
+const parseCliArgs = (argv) => {
+  const out = { target: null, help: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--help' || argv[i] === '-h') {
+      out.help = true;
+    }
+    if (argv[i] === '--target' && argv[i + 1]) {
+      out.target = resolve(process.cwd(), argv[i + 1]);
+      i += 1;
+    }
+  }
+  return out;
+};
+
+/**
+ * Directory where generated metadata is written.
+ * From npm/npx: cwd/force-app/main/default. From a clone: same as templates unless --target is set.
+ */
+const resolveOutputRoot = (cli) => {
+  if (cli.target) {
+    const t = cli.target;
+    if (existsSync(join(t, 'force-app', 'main', 'default'))) {
+      return join(t, 'force-app', 'main', 'default');
+    }
+    if (existsSync(join(t, 'externalCredentials')) || existsSync(join(t, 'namedCredentials'))) {
+      return t;
+    }
+    return join(t, 'force-app', 'main', 'default');
+  }
+  if (isInstalledFromNpm()) {
+    return join(process.cwd(), 'force-app', 'main', 'default');
+  }
+  return join(__dirname, 'force-app', 'main', 'default');
+};
 
 // =============================================================================
 // Colors (ANSI escape codes)
@@ -141,20 +180,21 @@ const applyReplacements = (content, replacements) => {
 const copyFromTemplate = (templatePath, newPath, replacements) => {
   const content = readFileSync(templatePath, 'utf8');
   const newContent = applyReplacements(content, replacements);
+  mkdirSync(dirname(newPath), { recursive: true });
   writeFileSync(newPath, newContent, 'utf8');
 };
 
 /** Returns true if any of the four metadata files for this MCP_NAME exist. */
-const instanceExists = (mcpName) => {
+const instanceExists = (mcpName, outputRoot) => {
   return FILES.some((file) => {
-    const path = join(FORCE_APP_DIR, file.dir, file.newName(mcpName));
+    const path = join(outputRoot, file.dir, file.newName(mcpName));
     return existsSync(path);
   });
 };
 
 /** Derive existing MCP instance names from externalCredentials dir (canonical source). */
-const getExistingInstances = () => {
-  const dir = join(FORCE_APP_DIR, 'externalCredentials');
+const getExistingInstances = (outputRoot) => {
+  const dir = join(outputRoot, 'externalCredentials');
   if (!existsSync(dir)) return [];
   const names = new Set();
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -318,9 +358,33 @@ const fetchSchemaFromMcp = async (mcpServerUrl, authProviderUrl, clientId, clien
 // =============================================================================
 
 const main = async () => {
+  const cli = parseCliArgs(process.argv.slice(2));
+  if (cli.help) {
+    console.log(`
+MCP Metadata Setup — Salesforce MCP metadata wizard
+
+Usage:
+  node setup.mjs [options]
+  npm create @mvogelgesang/sf-mcp-client-metadata@latest -- [options]
+
+Options:
+  --target <path>   SFDX project root, or path to force-app/main/default
+  -h, --help        Show this message
+
+When installed via npm/npx, files are written under the current directory’s
+force-app/main/default/. When run from a clone, files default to this repo’s
+force-app/main/default/ unless --target is set.
+`);
+    process.exit(0);
+  }
+
+  const outputRoot = resolveOutputRoot(cli);
+
   console.clear();
   log.header('MCP Metadata Setup Wizard');
-  
+
+  log.info(`Metadata output: ${outputRoot}`);
+
   console.log('This wizard will configure the Salesforce metadata files for your');
   console.log('Model Context Protocol (MCP) server integration.\n');
   console.log('You\'ll be prompted for the following values:');
@@ -328,13 +392,13 @@ const main = async () => {
     const opt = v.optional ? ' (optional)' : '';
     console.log(`  ${c.bold}${i + 1}.${c.reset} ${v.key}${opt}`);
   });
-  
+
   await prompt(`\n${c.yellow}Press Enter to continue or Ctrl+C to cancel...${c.reset}`);
-  
+
   // Gather values
   log.header('Step 1: Configuration Values');
-  
-  const existing = getExistingInstances();
+
+  const existing = getExistingInstances(outputRoot);
   if (existing.length > 0) {
     log.info(`Existing MCP instances: ${existing.join(', ')}`);
   }
@@ -402,7 +466,8 @@ const main = async () => {
   console.log(`  ${c.bold}NAMESPACE:${c.reset}         ${values.NAMESPACE || '(none)'}`);
   console.log(`  ${c.bold}Schema:${c.reset}           ${schemaSource}`);
   
-  console.log(`\n${c.bold}Files to be updated:${c.reset}`);
+  console.log(`\n${c.bold}Files to be written under:${c.reset} ${outputRoot}\n`);
+  console.log(`${c.bold}Files to be updated:${c.reset}`);
   for (const file of FILES) {
     console.log(`  • ${file.dir}/${file.oldName}`);
     console.log(`    → ${file.dir}/${file.newName(values.MCP_NAME)}\n`);
@@ -418,7 +483,7 @@ const main = async () => {
   }
   
   // Check for existing instance and confirm overwrite if needed
-  if (instanceExists(values.MCP_NAME)) {
+  if (instanceExists(values.MCP_NAME, outputRoot)) {
     const overwrite = await prompt(`${c.yellow}Metadata for '${values.MCP_NAME}' already exists. Overwrite? (y/n): ${c.reset}`);
     if (overwrite.toLowerCase() !== 'y') {
       console.log('');
@@ -432,8 +497,8 @@ const main = async () => {
   log.header('Step 3: Applying Changes');
   
   for (const file of FILES) {
-    const templatePath = join(FORCE_APP_DIR, file.dir, file.oldName);
-    const newPath = join(FORCE_APP_DIR, file.dir, file.newName(values.MCP_NAME));
+    const templatePath = join(TEMPLATE_ROOT, file.dir, file.oldName);
+    const newPath = join(outputRoot, file.dir, file.newName(values.MCP_NAME));
     
     if (!existsSync(templatePath)) {
       log.error(`Template not found: ${file.oldName}`);
@@ -446,16 +511,23 @@ const main = async () => {
   
   // Complete
   log.header('Setup Complete!');
-  
+
+  const permSetName = `${values.MCP_NAME}_Perm_Set`;
+
   console.log('Your MCP metadata files have been configured successfully.\n');
-  console.log(`${c.bold}Next Steps:${c.reset}`);
-  console.log('  1. Review the updated files in force-app/main/default/');
-  console.log('  2. Deploy to your Salesforce org:');
-  console.log(`     ${c.cyan}sf project deploy start --source-dir force-app${c.reset}`);
-  console.log('  3. Configure the Client ID and Client Secret in Salesforce Setup:');
-  console.log(`     ${c.cyan}Setup → Named Credentials → External Credentials → ${values.MCP_NAME}${c.reset}`);
-  console.log('  4. Assign the permission set to users who need access:');
-  console.log(`     ${c.cyan}${values.MCP_NAME}_Perm_Set${c.reset}`);
+  console.log(`${c.bold}Next steps${c.reset} — run the Salesforce CLI from your SFDX project root`);
+  console.log(`(the directory that contains \`force-app\`; metadata was written under:\n  ${outputRoot})\n`);
+  const m = values.MCP_NAME;
+  const deployOnlyNew = `sf project deploy start --metadata ExternalCredential:${m} --metadata NamedCredential:${m} --metadata ExternalServiceRegistration:${m} --metadata PermissionSet:${permSetName}`;
+  console.log(`  ${c.bold}1)${c.reset} Deploy only the new MCP metadata to your org`);
+  console.log(`     ${c.cyan}${deployOnlyNew}${c.reset}`);
+  console.log('     (add --target-org <alias> if your default org is not set)\n');
+  console.log(`  ${c.bold}2)${c.reset} Assign the MCP permission set to your user (or another user)`);
+  console.log(`     ${c.cyan}sf org assign permset -n ${permSetName}${c.reset}\n`);
+  console.log(`${c.bold}After deploy${c.reset} — finish MCP auth in Setup:`);
+  console.log(`  • ${c.cyan}Setup → Named Credentials → External Credentials → ${values.MCP_NAME}${c.reset}`);
+  console.log('    → Principals → enter Client Id and Client Secret → Save');
+  console.log(`  • ${c.cyan}Setup → Agentforce Registry → ${values.MCP_NAME}${c.reset} → Edit tools if needed`);
   console.log('');
   log.success('Happy coding!');
   console.log('');

@@ -1,1 +1,3 @@
 .pmdCache
+node_modules/
+*.tgz
