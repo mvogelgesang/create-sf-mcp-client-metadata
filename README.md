@@ -6,7 +6,9 @@ The following metadata will only work for MCP Client Beta participants.
 
 ## What's Included
 
-- **External Credential** - OAuth 2.0 client credentials configuration
+- **External Credential** — choose one of two authentication types:
+  - **OAuth 2.0 Client Credentials** (default)
+  - **No Authentication** — for public/unauthenticated MCP servers
 - **Named Credential** - Secure endpoint configuration for your MCP server
 - **External Service Registration** - MCP service registration
 - **Permission Set** - Access permissions for the external credential
@@ -18,8 +20,7 @@ The following metadata will only work for MCP Client Beta participants.
 - A Salesforce org with API access
 - Your MCP server details:
   - Server URL
-  - OAuth token endpoint URL
-  - Client ID and Client Secret
+  - For OAuth servers only: OAuth token endpoint URL, Client ID, and Client Secret
 
 ## Quick Start (recommended — no clone)
 
@@ -97,7 +98,8 @@ The interactive wizard will prompt you for:
 |----------|-------------|---------|
 | `MCP_NAME` | Unique identifier for your MCP server (letters only) | `weatherApi` |
 | `MCP_SERVER_URL` | Your MCP server endpoint URL | `https://mcp.example.com/api` |
-| `AUTH_PROVIDER_URL` | OAuth 2.0 token endpoint | `https://auth.example.com/oauth/token` |
+| `AUTH_TYPE` | Authentication type — `OAuth 2.0 Client Credentials` or `No Authentication` | `OAuth 2.0 Client Credentials` |
+| `AUTH_PROVIDER_URL` | OAuth 2.0 token endpoint (only when `AUTH_TYPE` is OAuth) | `https://auth.example.com/oauth/token` |
 | `NAMESPACE` | Salesforce namespace (optional) | `mycompany` |
 
 ## Deploy and assign permission set
@@ -119,11 +121,21 @@ Add `--target-org <alias>` to the deploy command if your default scratch org or 
 
 ## Activate MCP Server Connection
 
+### OAuth 2.0 Client Credentials
+
 1. [Workaround] Go to **Setup → Named Credentials → {MCP Server Name} → Click through to the External Credential
 2. Scroll down to Principals → Edit → Enter Client Id and Secret → Save
 3. Go to **Setup → Agentforce Registry → {MCP Server Name} → Edit
 4. Leave content in modal as is → Save and Continue
 5. Under Tools tab, Click Edit Tools. Full tool list will refresh
+
+### No Authentication
+
+No client credentials are required. The wizard generates an External Credential with `authenticationProtocol = NoAuthentication`.
+
+1. Go to **Setup → Agentforce Registry → {MCP Server Name} → Edit
+2. Leave content in modal as is → Save and Continue
+3. Under Tools tab, Click Edit Tools. Full tool list will refresh
 
 ## File Structure
 
@@ -147,7 +159,7 @@ The setup script replaces the following placeholders:
 |-------------|-------------|
 | `MCP_NAME` | Used in labels, API names, and file names |
 | `MCP_SERVER_URL` | The MCP server endpoint URL |
-| `AUTH_PROVIDER_URL` | OAuth token endpoint for authentication |
+| `AUTH_PROVIDER_URL` | OAuth token endpoint for authentication (OAuth auth type only) |
 | `NAMESPACE__` | Namespace prefix for managed package references (empty if no namespace) |
 
 ## License

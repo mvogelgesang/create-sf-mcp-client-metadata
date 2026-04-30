@@ -1,0 +1,390 @@
+{
+    "fileVersion": 0,
+    "serverMaxRevisionCounter": 297,
+    "sourceMembers": {
+        "ExternalServiceRegistration__news": {
+            "memberType": "ExternalServiceRegistration",
+            "serverRevisionCounter": 27,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalServiceRegistration__petstore": {
+            "memberType": "ExternalServiceRegistration",
+            "serverRevisionCounter": 222,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalServiceRegistration__GoogleMaps": {
+            "memberType": "ExternalServiceRegistration",
+            "serverRevisionCounter": 214,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": true
+        },
+        "ExternalServiceRegistration__mockReddit": {
+            "memberType": "ExternalServiceRegistration",
+            "serverRevisionCounter": 255,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalServiceRegistration__tmp": {
+            "memberType": "ExternalServiceRegistration",
+            "serverRevisionCounter": 291,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": true
+        },
+        "PermissionSet__news_Perm_Set": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 23,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "PermissionSet__sfdc_chatbot_service_permset": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 29,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "PermissionSet__sfdc_aiplanner_service_permset": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 30,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "PermissionSet__petstore_Perm_Set": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 98,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "PermissionSet__GoogleMaps_Perm_Set": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 212,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "PermissionSet__myEmployeeAgent": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 125,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "PermissionSet__mockReddit_Perm_Set": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 239,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "PermissionSet__tmp_Perm_Set": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 289,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "BotVersion__Agentforce_Employee_Agent.v1": {
+            "memberType": "BotVersion",
+            "serverRevisionCounter": 263,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "BotVersion__Pet_store_agent.v1": {
+            "memberType": "BotVersion",
+            "serverRevisionCounter": 272,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "NamedCredential__news": {
+            "memberType": "NamedCredential",
+            "serverRevisionCounter": 20,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "NamedCredential__petstore": {
+            "memberType": "NamedCredential",
+            "serverRevisionCounter": 226,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "NamedCredential__GoogleMaps": {
+            "memberType": "NamedCredential",
+            "serverRevisionCounter": 215,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": true
+        },
+        "NamedCredential__mockReddit": {
+            "memberType": "NamedCredential",
+            "serverRevisionCounter": 236,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "NamedCredential__tmp": {
+            "memberType": "NamedCredential",
+            "serverRevisionCounter": 292,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": true
+        },
+        "Bot__Agentforce_Employee_Agent": {
+            "memberType": "Bot",
+            "serverRevisionCounter": 69,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "Bot__Pet_store_agent": {
+            "memberType": "Bot",
+            "serverRevisionCounter": 182,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalCredential__news": {
+            "memberType": "ExternalCredential",
+            "serverRevisionCounter": 16,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalCredential__petstore": {
+            "memberType": "ExternalCredential",
+            "serverRevisionCounter": 224,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalCredential__GoogleMaps": {
+            "memberType": "ExternalCredential",
+            "serverRevisionCounter": 216,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": true
+        },
+        "ExternalCredential__mockReddit": {
+            "memberType": "ExternalCredential",
+            "serverRevisionCounter": 232,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalCredential__boxtest": {
+            "memberType": "ExternalCredential",
+            "serverRevisionCounter": 276,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalCredential__tmp": {
+            "memberType": "ExternalCredential",
+            "serverRevisionCounter": 293,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": true
+        },
+        "GenAiPlanner__Agentforce_Employee_Agent": {
+            "memberType": "GenAiPlanner",
+            "serverRevisionCounter": 113,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiPlanner__Pet_store_agent": {
+            "memberType": "GenAiPlanner",
+            "serverRevisionCounter": 197,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_getNewsnews": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 28,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__AnswerQuestionsWithKnowledge_16jDJ00000000FX": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 83,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__AnswerQuestionsWithKnowledge_179DJ00000002KX": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 85,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_getPetspetstore": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 107,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_updatePetpetstore": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 108,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_getPetByIdpetstore": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 109,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_getPetspetstore_179DJ00000002Kr": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 111,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_getPetByIdpetstore_179DJ00000002Kr": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 112,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__AnswerQuestionsWithKnowledge_16jDJ00000000Fw": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 196,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_getPetByIdpetstore_179DJ00000002L1": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 199,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_getPetspetstore_179DJ00000002L1": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 200,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_create_postmockReddit": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 256,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_user_postsmockReddit": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 257,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_create_commentmockReddit": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 258,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_commentsmockReddit": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 259,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_postmockReddit": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 260,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_subreddit_postsmockRedd": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 261,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_search_postsmockReddit": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 262,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_commentsmockReddit_179DJ00000002N6": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 265,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_subreddit_postsmockRedd_179DJ00000002N6": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 266,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_postmockReddit_179DJ00000002N6": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 267,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_search_postsmockReddit_179DJ00000002N6": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 268,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_create_commentmockReddit_179DJ00000002N6": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 269,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_create_postmockReddit_179DJ00000002N6": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 270,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiFunction__McpTool_get_user_postsmockReddit_179DJ00000002N6": {
+            "memberType": "GenAiFunction",
+            "serverRevisionCounter": 271,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiPlugin__GeneralFAQ_16jDJ00000000FX": {
+            "memberType": "GenAiPlugin",
+            "serverRevisionCounter": 114,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": true
+        },
+        "GenAiPlugin__Pets_16jDJ00000000FX": {
+            "memberType": "GenAiPlugin",
+            "serverRevisionCounter": 117,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiPlugin__Pet_Availability_16jDJ00000000Fw": {
+            "memberType": "GenAiPlugin",
+            "serverRevisionCounter": 201,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "GenAiPlugin__Reddit_Interaction_16jDJ00000000FX": {
+            "memberType": "GenAiPlugin",
+            "serverRevisionCounter": 264,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "AiAuthoringBundle__petstorenga_1": {
+            "memberType": "AiAuthoringBundle",
+            "serverRevisionCounter": 221,
+            "lastRetrievedFromServer": null,
+            "isNameObsolete": false
+        },
+        "ExternalServiceRegistration__notion": {
+            "memberType": "ExternalServiceRegistration",
+            "serverRevisionCounter": 296,
+            "lastRetrievedFromServer": 296,
+            "isNameObsolete": false
+        },
+        "PermissionSet__notion_Perm_Set": {
+            "memberType": "PermissionSet",
+            "serverRevisionCounter": 297,
+            "lastRetrievedFromServer": 297,
+            "isNameObsolete": false
+        },
+        "NamedCredential__notion": {
+            "memberType": "NamedCredential",
+            "serverRevisionCounter": 295,
+            "lastRetrievedFromServer": 295,
+            "isNameObsolete": false
+        },
+        "ExternalCredential__notion": {
+            "memberType": "ExternalCredential",
+            "serverRevisionCounter": 294,
+            "lastRetrievedFromServer": 294,
+            "isNameObsolete": false
+        }
+    }
+}

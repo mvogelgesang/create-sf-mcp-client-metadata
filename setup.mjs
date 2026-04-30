@@ -21,7 +21,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /** Templates always ship next to this script (package root when published). */
 const TEMPLATE_ROOT = join(__dirname, 'force-app', 'main', 'default');
 const TEMPLATE_NAME = 'template';
+const TEMPLATE_NAME_NOAUTH = 'template-noauth';
 const MCP_PROTOCOL_VERSION = '2025-06-18';
+
+const AUTH_TYPES = {
+  OAUTH: 'OAuth',
+  NO_AUTH: 'NoAuth',
+};
 
 const VARIABLES = [
   {
@@ -39,11 +45,22 @@ const VARIABLES = [
     error: 'Must be a valid URL starting with https://',
   },
   {
+    key: 'AUTH_TYPE',
+    prompt: 'Authentication type',
+    description: 'How Salesforce should authenticate to your MCP server.',
+    choices: [
+      { value: AUTH_TYPES.OAUTH, label: 'OAuth 2.0 Client Credentials' },
+      { value: AUTH_TYPES.NO_AUTH, label: 'No Authentication' },
+    ],
+    defaultValue: AUTH_TYPES.OAUTH,
+  },
+  {
     key: 'AUTH_PROVIDER_URL',
     prompt: 'OAuth token endpoint URL',
     description: 'The OAuth 2.0 token endpoint for authentication.\nExample: https://auth.example.com/oauth/token',
     validate: (val) => /^https?:\/\/.+/.test(val),
     error: 'Must be a valid URL starting with https://',
+    condition: (values) => values.AUTH_TYPE === AUTH_TYPES.OAUTH,
   },
   {
     key: 'NAMESPACE',
@@ -58,22 +75,22 @@ const VARIABLES = [
 const FILES = [
   {
     dir: 'externalCredentials',
-    oldName: `${TEMPLATE_NAME}.externalCredential-meta.xml`,
+    oldName: (authType) => `${authType === AUTH_TYPES.NO_AUTH ? TEMPLATE_NAME_NOAUTH : TEMPLATE_NAME}.externalCredential-meta.xml`,
     newName: (name) => `${name}.externalCredential-meta.xml`,
   },
   {
     dir: 'externalServiceRegistrations',
-    oldName: `${TEMPLATE_NAME}.externalServiceRegistration-meta.xml`,
+    oldName: () => `${TEMPLATE_NAME}.externalServiceRegistration-meta.xml`,
     newName: (name) => `${name}.externalServiceRegistration-meta.xml`,
   },
   {
     dir: 'namedCredentials',
-    oldName: `${TEMPLATE_NAME}.namedCredential-meta.xml`,
+    oldName: () => `${TEMPLATE_NAME}.namedCredential-meta.xml`,
     newName: (name) => `${name}.namedCredential-meta.xml`,
   },
   {
     dir: 'permissionsets',
-    oldName: `${TEMPLATE_NAME}_Perm_Set.permissionset-meta.xml`,
+    oldName: () => `${TEMPLATE_NAME}_Perm_Set.permissionset-meta.xml`,
     newName: (name) => `${name}_Perm_Set.permissionset-meta.xml`,
   },
 ];
@@ -152,15 +169,43 @@ const prompt = (question) => new Promise((resolve) => rl.question(question, reso
 const promptWithValidation = async (variable) => {
   console.log(`\n${c.bold}${variable.key}${c.reset}`);
   console.log(`${c.cyan}${variable.description}${c.reset}`);
-  
+
   while (true) {
     const suffix = variable.optional ? ' (press Enter to skip)' : '';
     const answer = await prompt(`${c.green}▸${c.reset} ${variable.prompt}${suffix}: `);
-    
+
     if (variable.validate(answer)) {
       return answer;
     }
     log.error(variable.error);
+  }
+};
+
+const promptChoice = async (variable) => {
+  console.log(`\n${c.bold}${variable.key}${c.reset}`);
+  console.log(`${c.cyan}${variable.description}${c.reset}`);
+
+  variable.choices.forEach((choice, idx) => {
+    const marker = choice.value === variable.defaultValue ? ' (default)' : '';
+    console.log(`  ${c.bold}${idx + 1}.${c.reset} ${choice.label}${marker}`);
+  });
+
+  const defaultIdx = variable.choices.findIndex((ch) => ch.value === variable.defaultValue);
+  const defaultLabel = defaultIdx >= 0 ? `${defaultIdx + 1}` : '';
+
+  while (true) {
+    const suffix = defaultLabel ? ` [${defaultLabel}]` : '';
+    const answer = (await prompt(`${c.green}▸${c.reset} ${variable.prompt}${suffix}: `)).trim();
+    if (answer === '' && variable.defaultValue !== undefined) {
+      return variable.defaultValue;
+    }
+    const num = Number.parseInt(answer, 10);
+    if (Number.isInteger(num) && num >= 1 && num <= variable.choices.length) {
+      return variable.choices[num - 1].value;
+    }
+    const matched = variable.choices.find((ch) => ch.value.toLowerCase() === answer.toLowerCase());
+    if (matched) return matched.value;
+    log.error(`Enter a number between 1 and ${variable.choices.length}.`);
   }
 };
 
@@ -184,7 +229,7 @@ const copyFromTemplate = (templatePath, newPath, replacements) => {
   writeFileSync(newPath, newContent, 'utf8');
 };
 
-/** Returns true if any of the four metadata files for this MCP_NAME exist. */
+/** Returns true if any of the metadata files for this MCP_NAME already exist. */
 const instanceExists = (mcpName, outputRoot) => {
   return FILES.some((file) => {
     const path = join(outputRoot, file.dir, file.newName(mcpName));
@@ -200,7 +245,9 @@ const getExistingInstances = (outputRoot) => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isFile()) continue;
     const match = entry.name.match(/^(.+)\.externalCredential-meta\.xml$/);
-    if (match && match[1] !== TEMPLATE_NAME) names.add(match[1]);
+    if (match && match[1] !== TEMPLATE_NAME && match[1] !== TEMPLATE_NAME_NOAUTH) {
+      names.add(match[1]);
+    }
   }
   return [...names].sort();
 };
@@ -405,8 +452,15 @@ force-app/main/default/ unless --target is set.
 
   const values = {};
   for (const variable of VARIABLES) {
-    values[variable.key] = await promptWithValidation(variable);
+    if (variable.condition && !variable.condition(values)) continue;
+    if (variable.choices) {
+      values[variable.key] = await promptChoice(variable);
+    } else {
+      values[variable.key] = await promptWithValidation(variable);
+    }
   }
+  const authType = values.AUTH_TYPE ?? AUTH_TYPES.OAUTH;
+  const isNoAuth = authType === AUTH_TYPES.NO_AUTH;
 
   // Optional: fetch schema and serviceBinding from MCP server
   log.header('Step 1b: Schema from MCP (optional)');
@@ -418,12 +472,18 @@ force-app/main/default/ unless --target is set.
   let schemaSource = 'minimal stub';
 
   if (fetchSchema) {
-    const clientId = (await prompt(`${c.green}▸${c.reset} Client ID (optional, if MCP requires OAuth): `)).trim();
-    const clientSecret = (await prompt(`${c.green}▸${c.reset} Client Secret (optional): `)).trim();
+    let clientId = '';
+    let clientSecret = '';
+    if (!isNoAuth) {
+      clientId = (await prompt(`${c.green}▸${c.reset} Client ID (optional, if MCP requires OAuth): `)).trim();
+      clientSecret = (await prompt(`${c.green}▸${c.reset} Client Secret (optional): `)).trim();
+    } else {
+      log.info('No Authentication selected — skipping OAuth credentials.');
+    }
     log.info('Calling MCP server...');
     const result = await fetchSchemaFromMcp(
       values.MCP_SERVER_URL,
-      values.AUTH_PROVIDER_URL,
+      values.AUTH_PROVIDER_URL ?? null,
       clientId || null,
       clientSecret || null,
     );
@@ -450,26 +510,34 @@ force-app/main/default/ unless --target is set.
   const replacements = {
     'MCP_NAME': values.MCP_NAME,
     'MCP_SERVER_URL': values.MCP_SERVER_URL,
-    'AUTH_PROVIDER_URL': values.AUTH_PROVIDER_URL,
     'NAMESPACE__': namespacePrefix,
     'SCHEMA_JSON': schemaJsonEscaped,
     'SERVICE_BINDING_JSON': serviceBindingJsonEscaped,
   };
+  if (values.AUTH_PROVIDER_URL) {
+    replacements['AUTH_PROVIDER_URL'] = values.AUTH_PROVIDER_URL;
+  }
 
   // Show summary
   log.header('Step 2: Review Configuration');
 
+  const authTypeLabel = isNoAuth ? 'No Authentication' : 'OAuth 2.0 Client Credentials';
+
   console.log('Please review your configuration:\n');
   console.log(`  ${c.bold}MCP_NAME:${c.reset}          ${values.MCP_NAME}`);
   console.log(`  ${c.bold}MCP_SERVER_URL:${c.reset}    ${values.MCP_SERVER_URL}`);
-  console.log(`  ${c.bold}AUTH_PROVIDER_URL:${c.reset} ${values.AUTH_PROVIDER_URL}`);
+  console.log(`  ${c.bold}AUTH_TYPE:${c.reset}         ${authTypeLabel}`);
+  if (values.AUTH_PROVIDER_URL) {
+    console.log(`  ${c.bold}AUTH_PROVIDER_URL:${c.reset} ${values.AUTH_PROVIDER_URL}`);
+  }
   console.log(`  ${c.bold}NAMESPACE:${c.reset}         ${values.NAMESPACE || '(none)'}`);
-  console.log(`  ${c.bold}Schema:${c.reset}           ${schemaSource}`);
-  
+  console.log(`  ${c.bold}Schema:${c.reset}            ${schemaSource}`);
+
   console.log(`\n${c.bold}Files to be written under:${c.reset} ${outputRoot}\n`);
   console.log(`${c.bold}Files to be updated:${c.reset}`);
   for (const file of FILES) {
-    console.log(`  • ${file.dir}/${file.oldName}`);
+    const templateFile = file.oldName(authType);
+    console.log(`  • ${file.dir}/${templateFile}`);
     console.log(`    → ${file.dir}/${file.newName(values.MCP_NAME)}\n`);
   }
   
@@ -497,14 +565,15 @@ force-app/main/default/ unless --target is set.
   log.header('Step 3: Applying Changes');
   
   for (const file of FILES) {
-    const templatePath = join(TEMPLATE_ROOT, file.dir, file.oldName);
+    const templateFile = file.oldName(authType);
+    const templatePath = join(TEMPLATE_ROOT, file.dir, templateFile);
     const newPath = join(outputRoot, file.dir, file.newName(values.MCP_NAME));
-    
+
     if (!existsSync(templatePath)) {
-      log.error(`Template not found: ${file.oldName}`);
+      log.error(`Template not found: ${templateFile}`);
       continue;
     }
-    
+
     copyFromTemplate(templatePath, newPath, replacements);
     log.success(`Created: ${file.newName(values.MCP_NAME)}`);
   }
@@ -524,9 +593,14 @@ force-app/main/default/ unless --target is set.
   console.log('     (add --target-org <alias> if your default org is not set)\n');
   console.log(`  ${c.bold}2)${c.reset} Assign the MCP permission set to your user (or another user)`);
   console.log(`     ${c.cyan}sf org assign permset -n ${permSetName}${c.reset}\n`);
-  console.log(`${c.bold}After deploy${c.reset} — finish MCP auth in Setup:`);
-  console.log(`  • ${c.cyan}Setup → Named Credentials → External Credentials → ${values.MCP_NAME}${c.reset}`);
-  console.log('    → Principals → enter Client Id and Client Secret → Save');
+  console.log(`${c.bold}After deploy${c.reset} — finish MCP setup in Setup:`);
+  if (isNoAuth) {
+    console.log(`  • ${c.cyan}Setup → Named Credentials → External Credentials → ${values.MCP_NAME}${c.reset}`);
+    console.log('    → No Authentication: nothing to configure on Principals.');
+  } else {
+    console.log(`  • ${c.cyan}Setup → Named Credentials → External Credentials → ${values.MCP_NAME}${c.reset}`);
+    console.log('    → Principals → enter Client Id and Client Secret → Save');
+  }
   console.log(`  • ${c.cyan}Setup → Agentforce Registry → ${values.MCP_NAME}${c.reset} → Edit tools if needed`);
   console.log('');
   log.success('Happy coding!');
